@@ -2,846 +2,376 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>A Car in the Road</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%%22 y=%2285%%22 text-anchor=%22middle%22 font-size=%22100%22>🚗</text></svg>">
-  <meta name="author" content="A.S.M. Tahsin Tajware (20220104006), Sonod Sadman (20220104025)" />
-  <meta name="description"
-    content="Real-time 3D scene built with Three.js: hand-written GLSL shaders, procedural textures, dynamic lighting, perspective projection, animation, mouse and keyboard interaction." />
-  <style>
-    :root {
-      --night: #0F1520;
-      --night-2: #161F2E;
-      --rule: rgba(200, 212, 226, .14);
-      --rule-soft: rgba(200, 212, 226, .07);
-      --haze: #C9D5E3;
-      --haze-2: rgba(201, 213, 227, .62);
-      --haze-3: rgba(201, 213, 227, .38);
-      --amber: #E9A54C;
-      --amber-dim: rgba(233, 165, 76, .16);
-      --signal: #C8402F;
-      --moss: #7FA05F;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>A Car in the Road - CSE4204 Computer Graphics Lab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+<meta name="author" content="A.S.M. Tahsin Tajware (20220104006), Sonod Sadman (20220104025)" />
+<meta name="description" content="Real-time 3D scene built with Three.js: hand-written GLSL shaders, procedural textures, dynamic lighting, perspective projection, animation, mouse and keyboard interaction." />
+<style>
 
-      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
-      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+:root{
+  --night:#0F1520;         
+  --night-2:#161F2E;       
+  --rule:rgba(200,212,226,.14);
+  --rule-soft:rgba(200,212,226,.07);
+  --haze:#C9D5E3;          
+  --haze-2:rgba(201,213,227,.62);
+  --haze-3:rgba(201,213,227,.38);
+  --amber:#E9A54C;        
+  --amber-dim:rgba(233,165,76,.16);
+  --signal:#C8402F;       
+  --moss:#7FA05F;
 
-      --pad: clamp(18px, 3.2vw, 44px);
-    }
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
 
-    * {
-      box-sizing: border-box
-    }
+  --pad:clamp(18px,3.2vw,44px);
+}
 
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #05080D;
-      color: var(--haze);
-      font-family: var(--sans);
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
+*{box-sizing:border-box}
+html,body{
+  margin:0;padding:0;height:100%;overflow:hidden;background:#05080D;
+  color:var(--haze);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+canvas{display:block}
+.hidden{display:none!important}
+button{font:inherit;color:inherit}
 
-    canvas {
-      display: block
-    }
+/* focus ring: visible, quiet, keyboard-only */
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
 
-    .hidden {
-      display: none !important
-    }
-
-    button {
-      font: inherit;
-      color: inherit
-    }
-
-    /* focus ring: visible, quiet, keyboard-only */
-    :focus-visible {
-      outline: 2px solid var(--amber);
-      outline-offset: 3px;
-      border-radius: 2px
-    }
-
-    /* ---------- viewport + colour grade ---------- */
-    #viewport {
-      position: fixed;
-      inset: 0;
-      z-index: 1
-    }
-
-    #grade {
-      position: fixed;
-      inset: 0;
-      z-index: 4;
-      pointer-events: none;
-      background: radial-gradient(118% 88% at 50% 46%, transparent 52%, rgba(4, 7, 12, .62) 100%);
-    }
-
-    #scan {
-      position: fixed;
-      inset: 0;
-      z-index: 5;
-      pointer-events: none;
-      opacity: .16;
-      background: repeating-linear-gradient(180deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px);
-      mix-blend-mode: overlay;
-    }
+/* ---------- viewport + colour grade ---------- */
+#viewport{position:fixed;inset:0;z-index:1}
+#grade{
+  position:fixed;inset:0;z-index:4;pointer-events:none;
+  background:radial-gradient(118% 88% at 50% 46%,transparent 52%,rgba(4,7,12,.62) 100%);
+}
+#scan{
+  position:fixed;inset:0;z-index:5;pointer-events:none;opacity:.16;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.05) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
 
 
 
-    /* START SCREEN */
-    #start {
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      background: linear-gradient(180deg, rgba(5, 8, 13, .20) 0%, rgba(5, 8, 13, .42) 42%, rgba(5, 8, 13, .94) 100%);
-      transition: opacity .7s ease, visibility .7s;
-      overflow-y: auto;
-    }
+/* START SCREEN */
+#start{
+  position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;
+  justify-content:flex-end;
+  background:linear-gradient(180deg,rgba(5,8,13,.20) 0%,rgba(5,8,13,.42) 42%,rgba(5,8,13,.94) 100%);
+  transition:opacity .7s ease,visibility .7s;
+  overflow-y:auto;
+}
+#start.away{opacity:0;visibility:hidden;pointer-events:none}
 
-    #start.away {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none
-    }
+#start .sheet{
+  width:100%;padding:var(--pad);padding-top:clamp(40px,9vh,110px);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);
+  gap:clamp(24px,4vw,64px);align-items:end;
+}
+#start .lede{max-width:62ch}
 
-    #start .sheet {
-      width: 100%;
-      padding: var(--pad);
-      padding-top: clamp(40px, 9vh, 110px);
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
-      gap: clamp(24px, 4vw, 64px);
-      align-items: end;
-    }
+.markline{width:56px;height:2px;background:var(--amber);margin-bottom:20px}
 
-    #start .lede {
-      max-width: 62ch
-    }
+#start h1{
+  margin:0 0 12px;font-size:clamp(38px,6.4vw,80px);line-height:.94;
+  letter-spacing:-.045em;font-weight:800;color:#fff;
+}
+#start h1 em{font-style:normal;color:var(--amber);font-weight:800}
 
-    .markline {
-      width: 56px;
-      height: 2px;
-      background: var(--amber);
-      margin-bottom: 20px
-    }
+#start .strap{
+  margin:0 0 26px;font-size:clamp(14px,1.35vw,16.5px);line-height:1.62;
+  color:var(--haze-2);max-width:56ch;
+}
 
-    #start h1 {
-      margin: 0 0 12px;
-      font-size: clamp(38px, 6.4vw, 80px);
-      line-height: .94;
-      letter-spacing: -.045em;
-      font-weight: 800;
-      color: #fff;
-    }
+/* definition list — real metadata, not decoration */
+.meta{display:grid;grid-template-columns:auto 1fr;gap:7px 22px;margin:0 0 28px;
+  font-size:13.5px;line-height:1.5}
+.meta dt{color:var(--haze-3);white-space:nowrap}
+.meta dd{margin:0;color:var(--haze)}
+.meta dd b{font-weight:600;color:#fff}
 
-    #start h1 em {
-      font-style: normal;
-      color: var(--amber);
-      font-weight: 800
-    }
+/* editable identity fields */
+.ident{
+  background:none;border:none;border-bottom:1px dashed var(--rule);
+  color:#fff;font:inherit;font-weight:600;padding:0 2px 1px;min-width:60px;
+  transition:border-color .2s;
+}
+.ident:hover,.ident:focus{border-bottom-color:var(--amber);outline:none}
 
-    #start .strap {
-      margin: 0 0 26px;
-      font-size: clamp(14px, 1.35vw, 16.5px);
-      line-height: 1.62;
-      color: var(--haze-2);
-      max-width: 56ch;
-    }
+/* loader */
+#loadRow{display:flex;align-items:center;gap:14px;margin-bottom:22px;max-width:520px}
+#track{flex:1;height:2px;background:var(--rule-soft);overflow:hidden}
+#fill{height:100%;width:0%;background:var(--amber);transition:width .35s cubic-bezier(.3,.8,.3,1)}
+#loadTxt{font-family:var(--mono);font-size:11.5px;color:var(--haze-3);
+  white-space:nowrap;letter-spacing:.01em}
 
-    /* definition list — real metadata, not decoration */
-    .meta {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 7px 22px;
-      margin: 0 0 28px;
-      font-size: 13.5px;
-      line-height: 1.5
-    }
+#enter{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:14px 30px;border:1px solid var(--amber);background:transparent;
+  color:var(--amber);font-size:14.5px;font-weight:600;letter-spacing:.01em;
+  cursor:pointer;transition:background .22s,color .22s,transform .22s;
+}
+#enter:hover:not(:disabled){background:var(--amber);color:#0F1520}
+#enter:active:not(:disabled){transform:translateY(1px)}
+#enter:disabled{border-color:var(--rule);color:var(--haze-3);cursor:progress}
+#enter .glyph{font-family:var(--mono);font-size:12px;opacity:.75}
 
-    .meta dt {
-      color: var(--haze-3);
-      white-space: nowrap
-    }
+/* right rail: control legend, unboxed */
+.legend{border-top:1px solid var(--rule);padding-top:18px}
+.legend h2{margin:0 0 14px;font-size:12px;font-weight:600;color:var(--haze-3);letter-spacing:.02em}
+.legend dl{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;margin:0;font-size:12.5px}
+.legend dt{display:flex;gap:4px;flex-wrap:wrap}
+.legend dd{margin:0;color:var(--haze-2);line-height:1.35}
 
-    .meta dd {
-      margin: 0;
-      color: var(--haze)
-    }
+kbd{
+  display:inline-block;min-width:20px;padding:2px 6px;text-align:center;
+  font-family:var(--mono);font-size:10.5px;line-height:1.35;color:var(--haze);
+  background:rgba(201,213,227,.09);border:1px solid var(--rule);border-radius:3px;
+}
 
-    .meta dd b {
-      font-weight: 600;
-      color: #fff
-    }
-
-    /* editable identity fields */
-    .ident {
-      background: none;
-      border: none;
-      border-bottom: 1px dashed var(--rule);
-      color: #fff;
-      font: inherit;
-      font-weight: 600;
-      padding: 0 2px 1px;
-      min-width: 60px;
-      transition: border-color .2s;
-    }
-
-    .ident:hover,
-    .ident:focus {
-      border-bottom-color: var(--amber);
-      outline: none
-    }
-
-    /* loader */
-    #loadRow {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 22px;
-      max-width: 520px
-    }
-
-    #track {
-      flex: 1;
-      height: 2px;
-      background: var(--rule-soft);
-      overflow: hidden
-    }
-
-    #fill {
-      height: 100%;
-      width: 0%;
-      background: var(--amber);
-      transition: width .35s cubic-bezier(.3, .8, .3, 1)
-    }
-
-    #loadTxt {
-      font-family: var(--mono);
-      font-size: 11.5px;
-      color: var(--haze-3);
-      white-space: nowrap;
-      letter-spacing: .01em
-    }
-
-    #enter {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 30px;
-      border: 1px solid var(--amber);
-      background: transparent;
-      color: var(--amber);
-      font-size: 14.5px;
-      font-weight: 600;
-      letter-spacing: .01em;
-      cursor: pointer;
-      transition: background .22s, color .22s, transform .22s;
-    }
-
-    #enter:hover:not(:disabled) {
-      background: var(--amber);
-      color: #0F1520
-    }
-
-    #enter:active:not(:disabled) {
-      transform: translateY(1px)
-    }
-
-    #enter:disabled {
-      border-color: var(--rule);
-      color: var(--haze-3);
-      cursor: progress
-    }
-
-    #enter .glyph {
-      font-family: var(--mono);
-      font-size: 12px;
-      opacity: .75
-    }
-
-    /* right rail: control legend, unboxed */
-    .legend {
-      border-top: 1px solid var(--rule);
-      padding-top: 18px
-    }
-
-    .legend h2 {
-      margin: 0 0 14px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--haze-3);
-      letter-spacing: .02em
-    }
-
-    .legend dl {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 9px 14px;
-      margin: 0;
-      font-size: 12.5px
-    }
-
-    .legend dt {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap
-    }
-
-    .legend dd {
-      margin: 0;
-      color: var(--haze-2);
-      line-height: 1.35
-    }
-
-    kbd {
-      display: inline-block;
-      min-width: 20px;
-      padding: 2px 6px;
-      text-align: center;
-      font-family: var(--mono);
-      font-size: 10.5px;
-      line-height: 1.35;
-      color: var(--haze);
-      background: rgba(201, 213, 227, .09);
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-    }
-
-    /* ============================================================================
+/* ============================================================================
    IN-SCENE HUD
    ========================================================================== */
-    #hud {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity .8s ease .25s
-    }
+#hud{position:fixed;inset:0;z-index:20;pointer-events:none;
+  opacity:0;transition:opacity .8s ease .25s}
+#hud.on{opacity:1}
 
-    #hud.on {
-      opacity: 1
-    }
+.panel{
+  position:absolute;background:rgba(15,21,32,.66);border:1px solid var(--rule);
+  backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);
+}
 
-    .panel {
-      position: absolute;
-      background: rgba(15, 21, 32, .66);
-      border: 1px solid var(--rule);
-      backdrop-filter: blur(14px) saturate(1.1);
-      -webkit-backdrop-filter: blur(14px) saturate(1.1);
-    }
+/* telemetry readout, top-left */
+#tele{top:var(--pad);left:var(--pad);padding:13px 16px;min-width:214px}
+#tele .row{display:flex;justify-content:space-between;align-items:baseline;gap:20px;
+  font-size:11.5px;padding:3.5px 0}
+#tele .row+.row{border-top:1px solid var(--rule-soft)}
+#tele .lbl{color:var(--haze-3)}
+#tele .val{font-family:var(--mono);font-size:11.5px;color:var(--haze);
+  font-variant-numeric:tabular-nums}
+#tele .val.hot{color:var(--amber)}
 
-    /* telemetry readout, top-left */
-    #tele {
-      top: var(--pad);
-      left: var(--pad);
-      padding: 13px 16px;
-      min-width: 214px
-    }
+/* speed dial, bottom-right */
+#dial{right:var(--pad);bottom:var(--pad);padding:14px 20px 12px;text-align:right;min-width:150px}
+#dial .num{font-family:var(--mono);font-size:42px;line-height:.9;font-weight:600;
+  color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#dial .unit{font-size:10.5px;color:var(--haze-3);margin-top:5px}
+#dial .meter{height:2px;background:var(--rule-soft);margin-top:11px;overflow:hidden}
+#dial .meter i{display:block;height:100%;width:0%;background:var(--amber);transition:width .12s linear}
 
-    #tele .row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 20px;
-      font-size: 11.5px;
-      padding: 3.5px 0
-    }
+/* key hints, bottom-left */
+#hints{left:var(--pad);bottom:var(--pad);padding:10px 14px;font-size:11.5px;
+  color:var(--haze-2);max-width:min(58vw,620px);line-height:1.9}
+#hints b{color:var(--haze);font-family:var(--mono);font-weight:500;font-size:10.5px;
+  background:rgba(201,213,227,.09);border:1px solid var(--rule);border-radius:3px;padding:1px 5px}
 
-    #tele .row+.row {
-      border-top: 1px solid var(--rule-soft)
-    }
+/* transient toast */
+#toast{
+  left:50%;top:calc(var(--pad) + 4px);transform:translateX(-50%);
+  padding:9px 20px;font-size:12.5px;color:var(--haze);white-space:nowrap;
+  opacity:0;transition:opacity .28s ease;
+}
+#toast.show{opacity:1}
+#toast b{color:var(--amber);font-weight:600}
 
-    #tele .lbl {
-      color: var(--haze-3)
-    }
-
-    #tele .val {
-      font-family: var(--mono);
-      font-size: 11.5px;
-      color: var(--haze);
-      font-variant-numeric: tabular-nums
-    }
-
-    #tele .val.hot {
-      color: var(--amber)
-    }
-
-    /* speed dial, bottom-right */
-    #dial {
-      right: var(--pad);
-      bottom: var(--pad);
-      padding: 14px 20px 12px;
-      text-align: right;
-      min-width: 150px
-    }
-
-    #dial .num {
-      font-family: var(--mono);
-      font-size: 42px;
-      line-height: .9;
-      font-weight: 600;
-      color: #fff;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -.02em
-    }
-
-    #dial .unit {
-      font-size: 10.5px;
-      color: var(--haze-3);
-      margin-top: 5px
-    }
-
-    #dial .meter {
-      height: 2px;
-      background: var(--rule-soft);
-      margin-top: 11px;
-      overflow: hidden
-    }
-
-    #dial .meter i {
-      display: block;
-      height: 100%;
-      width: 0%;
-      background: var(--amber);
-      transition: width .12s linear
-    }
-
-    /* key hints, bottom-left */
-    #hints {
-      left: var(--pad);
-      bottom: var(--pad);
-      padding: 10px 14px;
-      font-size: 11.5px;
-      color: var(--haze-2);
-      max-width: min(58vw, 620px);
-      line-height: 1.9
-    }
-
-    #hints b {
-      color: var(--haze);
-      font-family: var(--mono);
-      font-weight: 500;
-      font-size: 10.5px;
-      background: rgba(201, 213, 227, .09);
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      padding: 1px 5px
-    }
-
-    /* transient toast */
-    #toast {
-      left: 50%;
-      top: calc(var(--pad) + 4px);
-      transform: translateX(-50%);
-      padding: 9px 20px;
-      font-size: 12.5px;
-      color: var(--haze);
-      white-space: nowrap;
-      opacity: 0;
-      transition: opacity .28s ease;
-    }
-
-    #toast.show {
-      opacity: 1
-    }
-
-    #toast b {
-      color: var(--amber);
-      font-weight: 600
-    }
-
-    /* ============================================================================
+/* ============================================================================
    INFO OVERLAY — requirement map 
    ========================================================================== */
-    #info {
-      position: fixed;
-      inset: 0;
-      z-index: 35;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(5, 8, 13, .86);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      padding: var(--pad);
-      overflow-y: auto;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .3s, visibility .3s;
-    }
+#info{
+  position:fixed;inset:0;z-index:35;display:flex;justify-content:center;align-items:center;
+  background:rgba(5,8,13,.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  padding:var(--pad);overflow-y:auto;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;
+}
+#info.on{opacity:1;visibility:visible}
+#info .doc{width:min(980px,100%);background:var(--night);border:1px solid var(--rule);
+  padding:clamp(26px,3.4vw,44px)}
+#info h2{margin:0 0 6px;font-size:26px;letter-spacing:-.028em;font-weight:700;color:#fff}
+#info .note{margin:0 0 26px;font-size:13.5px;color:var(--haze-2);line-height:1.6;max-width:70ch}
+#info table{width:100%;border-collapse:collapse;font-size:13px}
+#info th{text-align:left;font-weight:600;color:var(--haze-3);font-size:11.5px;
+  padding:0 14px 9px 0;border-bottom:1px solid var(--rule)}
+#info td{padding:11px 14px 11px 0;border-bottom:1px solid var(--rule-soft);
+  vertical-align:top;line-height:1.55;color:var(--haze-2)}
+#info td:first-child{color:#fff;font-weight:600;white-space:nowrap}
+#info td b{color:var(--amber);font-weight:600}
+#info .close{margin-top:26px;padding:11px 24px;background:transparent;border:1px solid var(--rule);
+  color:var(--haze);cursor:pointer;font-size:13px;transition:border-color .2s,color .2s}
+#info .close:hover{border-color:var(--amber);color:var(--amber)}
 
-    #info.on {
-      opacity: 1;
-      visibility: visible
-    }
+/* ---------- fatal error ---------- */
+#fatal{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;
+  padding:40px;background:#05080D;text-align:center}
+#fatal div{max-width:46ch}
+#fatal h2{margin:0 0 12px;color:var(--amber);font-size:22px;font-weight:700}
+#fatal p{margin:0;color:var(--haze-2);line-height:1.65;font-size:14px}
 
-    #info .doc {
-      width: min(980px, 100%);
-      background: var(--night);
-      border: 1px solid var(--rule);
-      padding: clamp(26px, 3.4vw, 44px)
-    }
+/* ---------- touch pad (small screens) ---------- */
+#touch{position:fixed;inset:auto 0 0 0;z-index:25;display:flex;gap:7px;
+  padding:0 12px var(--pad);justify-content:center}
+.tb{width:50px;height:50px;border-radius:50%;background:rgba(15,21,32,.72);
+  border:1px solid var(--rule);backdrop-filter:blur(10px);display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:600;
+  color:var(--haze);user-select:none;-webkit-user-select:none;touch-action:none}
+.tb:active{background:var(--amber);color:#0F1520}
 
-    #info h2 {
-      margin: 0 0 6px;
-      font-size: 26px;
-      letter-spacing: -.028em;
-      font-weight: 700;
-      color: #fff
-    }
-
-    #info .note {
-      margin: 0 0 26px;
-      font-size: 13.5px;
-      color: var(--haze-2);
-      line-height: 1.6;
-      max-width: 70ch
-    }
-
-    #info table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px
-    }
-
-    #info th {
-      text-align: left;
-      font-weight: 600;
-      color: var(--haze-3);
-      font-size: 11.5px;
-      padding: 0 14px 9px 0;
-      border-bottom: 1px solid var(--rule)
-    }
-
-    #info td {
-      padding: 11px 14px 11px 0;
-      border-bottom: 1px solid var(--rule-soft);
-      vertical-align: top;
-      line-height: 1.55;
-      color: var(--haze-2)
-    }
-
-    #info td:first-child {
-      color: #fff;
-      font-weight: 600;
-      white-space: nowrap
-    }
-
-    #info td b {
-      color: var(--amber);
-      font-weight: 600
-    }
-
-    #info .close {
-      margin-top: 26px;
-      padding: 11px 24px;
-      background: transparent;
-      border: 1px solid var(--rule);
-      color: var(--haze);
-      cursor: pointer;
-      font-size: 13px;
-      transition: border-color .2s, color .2s
-    }
-
-    #info .close:hover {
-      border-color: var(--amber);
-      color: var(--amber)
-    }
-
-    /* ---------- fatal error ---------- */
-    #fatal {
-      position: fixed;
-      inset: 0;
-      z-index: 70;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      background: #05080D;
-      text-align: center
-    }
-
-    #fatal div {
-      max-width: 46ch
-    }
-
-    #fatal h2 {
-      margin: 0 0 12px;
-      color: var(--amber);
-      font-size: 22px;
-      font-weight: 700
-    }
-
-    #fatal p {
-      margin: 0;
-      color: var(--haze-2);
-      line-height: 1.65;
-      font-size: 14px
-    }
-
-    /* ---------- touch pad (small screens) ---------- */
-    #touch {
-      position: fixed;
-      inset: auto 0 0 0;
-      z-index: 25;
-      display: flex;
-      gap: 7px;
-      padding: 0 12px var(--pad);
-      justify-content: center
-    }
-
-    .tb {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(15, 21, 32, .72);
-      border: 1px solid var(--rule);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--haze);
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none
-    }
-
-    .tb:active {
-      background: var(--amber);
-      color: #0F1520
-    }
-
-    /* ============================================================================
+/* ============================================================================
    RESPONSIVE
    ========================================================================== */
-    @media (max-width:900px) {
-      #start .sheet {
-        grid-template-columns: 1fr;
-        align-items: start;
-        padding-top: clamp(30px, 7vh, 60px)
-      }
-
-      .legend {
-        border-top: 1px solid var(--rule);
-        margin-top: 4px
-      }
-
-      #hints {
-        display: none
-      }
-
-      #tele {
-        min-width: 0;
-        font-size: 11px
-      }
-
-      #dial {
-        bottom: calc(var(--pad) + 66px)
-      }
-    }
-
-    @media (max-width:560px) {
-      #dial .num {
-        font-size: 32px
-      }
-
-      .tb {
-        width: 44px;
-        height: 44px;
-        font-size: 10px
-      }
-
-      #touch {
-        gap: 5px
-      }
-
-      .legend dl {
-        grid-template-columns: auto 1fr
-      }
-    }
-
-    @media (prefers-reduced-motion:reduce) {
-      * {
-        transition-duration: .01ms !important
-      }
-    }
-  </style>
+@media (max-width:900px){
+  #start .sheet{grid-template-columns:1fr;align-items:start;padding-top:clamp(30px,7vh,60px)}
+  .legend{border-top:1px solid var(--rule);margin-top:4px}
+  #hints{display:none}
+  #tele{min-width:0;font-size:11px}
+  #dial{bottom:calc(var(--pad) + 66px)}
+}
+@media (max-width:560px){
+  #dial .num{font-size:32px}
+  .tb{width:44px;height:44px;font-size:10px}
+  #touch{gap:5px}
+  .legend dl{grid-template-columns:auto 1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important}
+}
+</style>
 </head>
 
 <body>
 
-  <div id="viewport"></div>
-  <div id="grade"></div>
-  <div id="scan"></div>
+<div id="viewport"></div>
+<div id="grade"></div>
+<div id="scan"></div>
 
-  <!-- ========================= START SCREEN ========================= -->
-  <div id="start">
-    <div class="sheet">
+<!-- ========================= START SCREEN ========================= -->
+<div id="start">
+  <div class="sheet">
 
-      <div class="lede">
-        <div class="markline" aria-hidden="true"></div>
-        <h1>A Car in<br>the <em>Road</em></h1>
-        <p class="strap">
-          A real-time scene rendered with Three.js. The road surface, the car paint,
-          the sky and the roadside grass are each drawn by shaders written for this
-          project in GLSL, lit by a moving sun and a lamp that circles the loop.
-        </p>
-
-        <dl class="meta">
-          <dt>Course</dt>
-          <dd><b>CSE4204</b> - Computer Graphics Lab, Final Project</dd>
-          <dt>Task</dt>
-          <dd>Serial <b>10</b> - a car in the road</dd>
-          <dt>Submitted by</dt>
-          <dd><b>A.S.M. Tahsin Tajware</b> &nbsp;20220104006</dd>
-          <dt></dt>
-          <dd><b>Sonod Sadman</b> &nbsp;20220104025</dd>
-        </dl>
-
-        <div id="loadRow">
-          <div id="track">
-            <div id="fill"></div>
-          </div>
-          <div id="loadTxt">starting up</div>
-        </div>
-
-        <button id="enter" disabled>
-          <span id="enterTxt">Building the scene</span>
-          <span class="glyph" aria-hidden="true">[ ]</span>
-        </button>
-      </div>
-
-      <div class="legend">
-        <h2>Controls</h2>
-        <dl>
-          <dt><kbd>←</kbd><kbd>→</kbd></dt>
-          <dd>Steer the car</dd>
-          <dt><kbd>↑</kbd><kbd>↓</kbd></dt>
-          <dd>Throttle, then brake and reverse</dd>
-          <dt><kbd>Space</kbd></dt>
-          <dd>Handbrake</dd>
-          <dt><kbd>M</kbd></dt>
-          <dd>Hand the car back to the autopilot</dd>
-          <dt><kbd>Q</kbd><kbd>E</kbd></dt>
-          <dd>Move the camera around the car</dd>
-          <dt><kbd>,</kbd><kbd>.</kbd></dt>
-          <dd>Raise and lower the camera</dd>
-          <dt><kbd>&minus;</kbd><kbd>=</kbd></dt>
-          <dd>Move the camera out and in</dd>
-          <dt><kbd>Drag</kbd></dt>
-          <dd>Turn the camera around the car</dd>
-          <dt><kbd>Shift</kbd>+<kbd>Drag</kbd></dt>
-          <dd>Rotate the light around the road</dd>
-          <dt><kbd>Wheel</kbd></dt>
-          <dd>Move closer or further away</dd>
-          <dt><kbd>Click</kbd></dt>
-          <dd>Name the car part under the pointer</dd>
-          <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></dt>
-          <dd>Orbit, chase, driver, overhead</dd>
-          <dt><kbd>A</kbd></dt>
-          <dd>Let the camera circle on its own</dd>
-          <dt><kbd>J</kbd></dt>
-          <dd>Let the light circle on its own</dd>
-          <dt><kbd>P</kbd></dt>
-          <dd>Swap perspective for orthographic</dd>
-          <dt><kbd>N</kbd></dt>
-          <dd>Move the sun to night</dd>
-          <dt><kbd>L</kbd></dt>
-          <dd>Turn the circling lamp off</dd>
-          <dt><kbd>H</kbd></dt>
-          <dd>Headlights</dd>
-          <dt><kbd>I</kbd></dt>
-          <dd>Open the build notes</dd>
-        </dl>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ========================= HUD ========================= -->
-  <div id="hud">
-    <div id="tele" class="panel">
-      <div class="row"><span class="lbl">Drive</span><span class="val hot" id="tDrive">Autopilot</span></div>
-      <div class="row"><span class="lbl">Camera</span><span class="val" id="tCam">Orbit</span></div>
-      <div class="row"><span class="lbl">Projection</span><span class="val hot" id="tProj">Perspective 55&deg;</span>
-      </div>
-      <div class="row"><span class="lbl">Wheel spin</span><span class="val" id="tRpm">0 rpm</span></div>
-      <div class="row"><span class="lbl">Lamp angle</span><span class="val" id="tLamp">0&deg;</span></div>
-      <div class="row"><span class="lbl">Sun</span><span class="val" id="tSun">Afternoon</span></div>
-      <div class="row"><span class="lbl">Frame</span><span class="val" id="tFps">60 fps</span></div>
-    </div>
-
-    <div id="dial" class="panel">
-      <div class="num" id="dSpeed">0</div>
-      <div class="unit">km / h</div>
-      <div class="meter"><i id="dMeter"></i></div>
-    </div>
-
-    <div id="hints" class="panel">
-      <b>Q</b><b>E</b> camera round the car &nbsp; <b>,</b><b>.</b> up and down &nbsp; <b>−</b><b>=</b> out and in
-      &nbsp;
-      <b>shift</b>+<b>drag</b> rotate the light &nbsp; <b>J</b> light autopilot<br>
-      <b>←</b><b>→</b> steer &nbsp; <b>↑</b> throttle &nbsp; <b>↓</b> brake &nbsp; <b>space</b> handbrake &nbsp;
-      <b>M</b> autopilot &nbsp; <b>1</b>–<b>4</b> cameras &nbsp;
-      <b>P</b> projection &nbsp; <b>N</b> night &nbsp; <b>W</b> wireframe &nbsp; <b>I</b> notes
-    </div>
-
-    <div id="toast" class="panel"></div>
-  </div>
-
-  <div id="touch" class="hidden">
-    <div class="tb" id="tbLeft">&#9664;</div>
-    <div class="tb" id="tbRight">&#9654;</div>
-    <div class="tb" id="tbGas">GAS</div>
-    <div class="tb" id="tbBrake">STOP</div>
-    <div class="tb" id="tbCam">CAM</div>
-    <div class="tb" id="tbNight">NIGHT</div>
-  </div>
-
-  <!-- ========================= BUILD NOTES ========================= -->
-  <div id="info">
-    <div class="doc">
-      <h2>How this scene is built</h2>
-      <p class="note">
-        <b>A.S.M. Tahsin Tajware</b> 20220104006 &nbsp;&middot;&nbsp; <b>Sonod Sadman</b> 20220104025<br>
-        Every object is modelled from Three.js geometry primitives and every texture is drawn
-        at load time onto a canvas, so the project has no imported models and no downloaded
-        image files. Each row points at the section of the source that answers a requirement.
+    <div class="lede">
+      <div class="markline" aria-hidden="true"></div>
+      <h1>A Car in<br>the <em>Road</em></h1>
+      <p class="strap">
+        A real-time scene rendered with Three.js. The road surface, the car paint,
+        the sky and the roadside grass are each drawn by shaders written for this
+        project in GLSL, lit by a moving sun and a lamp that circles the loop.
       </p>
-      <table>
-        <thead>
-          <tr>
-            <th>Requirement</th>
-            <th>Where it lives</th>
-            <th>What to look for</th>
-          </tr>
-        </thead>
-        <tbody id="reqRows"></tbody>
-      </table>
-      <button class="close" id="infoClose">Back to the scene</button>
+
+      <dl class="meta">
+        <dt>Course</dt>
+        <dd><b>CSE4204</b> - Computer Graphics Lab, Final Project</dd>
+        <dt>Task</dt>
+        <dd>Serial <b>10</b> - a car in the road</dd>
+        <dt>Submitted by</dt>
+        <dd><b>A.S.M. Tahsin Tajware</b> &nbsp;20220104006</dd>
+        <dt></dt>
+        <dd><b>Sonod Sadman</b> &nbsp;20220104025</dd>
+      </dl>
+
+      <div id="loadRow">
+        <div id="track"><div id="fill"></div></div>
+        <div id="loadTxt">starting up</div>
+      </div>
+
+      <button id="enter" disabled>
+        <span id="enterTxt">Building the scene</span>
+        <span class="glyph" aria-hidden="true">[ ]</span>
+      </button>
     </div>
+
+    <div class="legend">
+      <h2>Controls</h2>
+      <dl>
+        <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>Steer the car</dd>
+        <dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>Throttle, then brake and reverse</dd>
+        <dt><kbd>Space</kbd></dt><dd>Handbrake</dd>
+        <dt><kbd>M</kbd></dt><dd>Hand the car back to the autopilot</dd>
+        <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>Move the camera around the car</dd>
+        <dt><kbd>,</kbd><kbd>.</kbd></dt><dd>Raise and lower the camera</dd>
+        <dt><kbd>&minus;</kbd><kbd>=</kbd></dt><dd>Move the camera out and in</dd>
+        <dt><kbd>Drag</kbd></dt><dd>Turn the camera around the car</dd>
+        <dt><kbd>Shift</kbd>+<kbd>Drag</kbd></dt><dd>Rotate the light around the road</dd>
+        <dt><kbd>Wheel</kbd></dt><dd>Move closer or further away</dd>
+        <dt><kbd>Click</kbd></dt><dd>Name the car part under the pointer</dd>
+        <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></dt><dd>Orbit, chase, driver, overhead</dd>
+        <dt><kbd>A</kbd></dt><dd>Let the camera circle on its own</dd>
+        <dt><kbd>J</kbd></dt><dd>Let the light circle on its own</dd>
+        <dt><kbd>P</kbd></dt><dd>Swap perspective for orthographic</dd>
+        <dt><kbd>N</kbd></dt><dd>Move the sun to night</dd>
+        <dt><kbd>L</kbd></dt><dd>Turn the circling lamp off</dd>
+        <dt><kbd>H</kbd></dt><dd>Headlights</dd>
+        <dt><kbd>I</kbd></dt><dd>Open the build notes</dd>
+      </dl>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================= HUD ========================= -->
+<div id="hud">
+  <div id="tele" class="panel">
+    <div class="row"><span class="lbl">Drive</span><span class="val hot" id="tDrive">Autopilot</span></div>
+    <div class="row"><span class="lbl">Camera</span><span class="val" id="tCam">Orbit</span></div>
+    <div class="row"><span class="lbl">Projection</span><span class="val hot" id="tProj">Perspective 55&deg;</span></div>
+    <div class="row"><span class="lbl">Wheel spin</span><span class="val" id="tRpm">0 rpm</span></div>
+    <div class="row"><span class="lbl">Lamp angle</span><span class="val" id="tLamp">0&deg;</span></div>
+    <div class="row"><span class="lbl">Sun</span><span class="val" id="tSun">Afternoon</span></div>
+    <div class="row"><span class="lbl">Frame</span><span class="val" id="tFps">60 fps</span></div>
   </div>
 
-  <div id="fatal" class="hidden">
-    <div>
-      <h2>This scene needs WebGL</h2>
-      <p id="fatalMsg">Open the file in a recent Chrome, Edge or Firefox with hardware
-        acceleration switched on.</p>
-    </div>
+  <div id="dial" class="panel">
+    <div class="num" id="dSpeed">0</div>
+    <div class="unit">km / h</div>
+    <div class="meter"><i id="dMeter"></i></div>
   </div>
 
-  <script type="module" src="/js/main.js"></script>
+  <div id="hints" class="panel">
+    <b>Q</b><b>E</b> camera round the car &nbsp; <b>,</b><b>.</b> up and down &nbsp; <b>−</b><b>=</b> out and in &nbsp;
+    <b>shift</b>+<b>drag</b> rotate the light &nbsp; <b>J</b> light autopilot<br>
+    <b>←</b><b>→</b> steer &nbsp; <b>↑</b> throttle &nbsp; <b>↓</b> brake &nbsp; <b>space</b> handbrake &nbsp;
+    <b>M</b> autopilot &nbsp; <b>1</b>–<b>4</b> cameras &nbsp;
+    <b>P</b> projection &nbsp; <b>N</b> night &nbsp; <b>W</b> wireframe &nbsp; <b>I</b> notes
+  </div>
+
+  <div id="toast" class="panel"></div>
+</div>
+
+<div id="touch" class="hidden">
+  <div class="tb" id="tbLeft">&#9664;</div>
+  <div class="tb" id="tbRight">&#9654;</div>
+  <div class="tb" id="tbGas">GAS</div>
+  <div class="tb" id="tbBrake">STOP</div>
+  <div class="tb" id="tbCam">CAM</div>
+  <div class="tb" id="tbNight">NIGHT</div>
+</div>
+
+<!-- ========================= BUILD NOTES ========================= -->
+<div id="info">
+  <div class="doc">
+    <h2>How this scene is built</h2>
+    <p class="note">
+      <b>A.S.M. Tahsin Tajware</b> 20220104006 &nbsp;&middot;&nbsp; <b>Sonod Sadman</b> 20220104025<br>
+      Every object is modelled from Three.js geometry primitives and every texture is drawn
+      at load time onto a canvas, so the project has no imported models and no downloaded
+      image files. Each row points at the section of the source that answers a requirement.
+    </p>
+    <table>
+      <thead><tr><th>Requirement</th><th>Where it lives</th><th>What to look for</th></tr></thead>
+      <tbody id="reqRows"></tbody>
+    </table>
+    <button class="close" id="infoClose">Back to the scene</button>
+  </div>
+</div>
+
+<div id="fatal" class="hidden">
+  <div>
+    <h2>This scene needs WebGL</h2>
+    <p id="fatalMsg">Open the file in a recent Chrome, Edge or Firefox with hardware
+      acceleration switched on.</p>
+  </div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
 </body>
-
 </html>
